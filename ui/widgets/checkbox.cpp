@@ -53,7 +53,8 @@ void AbstractCheckView::setChecked(bool checked, anim::type animated) {
 			[=] { if (_updateCallback) _updateCallback(); },
 			_checked ? 0. : 1.,
 			_checked ? 1. : 0.,
-			_duration);
+			_duration,
+			anim::easeOutCubic);
 	}
 	checkedChangedHook(animated);
 	if (changed) {
