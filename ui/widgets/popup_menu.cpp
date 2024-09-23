@@ -15,6 +15,7 @@
 #include "ui/ui_utility.h"
 #include "ui/delayed_activation.h"
 #include "ui/painter.h"
+#include "ui/integration.h"
 #include "base/invoke_queued.h"
 #include "base/platform/base_platform_info.h"
 
@@ -375,13 +376,9 @@ void PopupMenu::handleMenuResize() {
 	_scroll->resize(
 		newWidth - _padding.left() - _padding.right(),
 		scrollHeight);
-	{
-		const auto newSize = QSize(
-			newWidth,
-			_padding.top() + scrollHeight + _padding.bottom());
-		setFixedSize(newSize);
-		resize(newSize);
-	}
+	setFixedSize(
+		newWidth,
+		_padding.top() + scrollHeight + _padding.bottom());
 	_inner = rect().marginsRemoved(_padding);
 }
 

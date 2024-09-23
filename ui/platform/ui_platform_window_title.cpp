@@ -7,6 +7,7 @@
 #include "ui/platform/ui_platform_window_title.h"
 
 #include "ui/platform/ui_platform_utility.h"
+#include "ui/qt_weak_factory.h"
 #include "ui/widgets/buttons.h"
 #include "ui/widgets/shadow.h"
 #include "ui/ui_utility.h"
@@ -266,12 +267,7 @@ HitTestResult TitleControls::hitTest(QPoint point, int padding) const {
 			{ 0, padding, 0, 0 }
 		).contains(point);
 	};
-	if (::Platform::IsWindows11OrGreater()
-		&& !_maximizedState
-		&& (point.y() < style::ConvertScale(
-			window()->windowHandle()->devicePixelRatio()))) {
-		return HitTestResult::Top;
-	} else if (test(_minimize)) {
+	if (test(_minimize)) {
 		return HitTestResult::Minimize;
 	} else if (test(_maximizeRestore)) {
 		return HitTestResult::MaximizeRestore;

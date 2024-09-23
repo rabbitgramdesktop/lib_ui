@@ -7,8 +7,8 @@
 #include "ui/integration.h"
 
 #include "ui/gl/gl_detection.h"
+#include "ui/text/text_custom_emoji.h"
 #include "ui/text/text_entity.h"
-#include "ui/text/text_block.h"
 #include "ui/toast/toast.h"
 #include "ui/basic_click_handlers.h"
 #include "base/platform/base_platform_info.h"
@@ -77,11 +77,11 @@ Fn<void()> Integration::createSpoilerRepaint(const std::any &context) {
 	return nullptr;
 }
 
-bool Integration::allowClickHandlerActivation(
-		const std::shared_ptr<ClickHandler> &handler,
-		const ClickContext &context) {
-	return true;
-}
+// bool Integration::allowClickHandlerActivation(
+// 		const std::shared_ptr<ClickHandler> &handler,
+// 		const ClickContext &context) {
+// 	return true;
+// }
 
 bool Integration::handleUrlClick(
 		const QString &url,

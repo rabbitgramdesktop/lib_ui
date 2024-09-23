@@ -88,7 +88,7 @@ void TitleWidget::initInWindow(not_null<RpWindow*> window) {
 	) | rpl::filter([=](not_null<HitTestRequest*> request) {
 		return !isHidden() && geometry().contains(request->point);
 	}) | rpl::start_with_next([=](not_null<HitTestRequest*> request) {
-		request->result = hitTest(request->point, request->result);
+		request->result = hitTest(request->point);
 	}, lifetime());
 
 	SetupSemiNativeSystemButtons(&_controls, window, lifetime(), [=] {
@@ -152,9 +152,7 @@ void TitleWidget::resizeEvent(QResizeEvent *e) {
 	}
 }
 
-HitTestResult TitleWidget::hitTest(
-		QPoint point,
-		HitTestResult oldResult) const {
+HitTestResult TitleWidget::hitTest(QPoint point) const {
 	const auto origin = _paddingHelper
 		? _paddingHelper->controlsParent.pos()
 		: QPoint();
@@ -164,8 +162,6 @@ HitTestResult TitleWidget::hitTest(
 	const auto controlsResult = _controls.hitTest(point - origin, padding);
 	return (controlsResult != HitTestResult::None)
 		? controlsResult
-		: (oldResult != HitTestResult::Client)
-		? oldResult
 		: HitTestResult::Caption;
 }
 
@@ -176,13 +172,9 @@ bool TitleWidget::additionalPaddingRequired() const {
 void TitleWidget::refreshAdditionalPaddings() {
 	if (!additionalPaddingRequired()) {
 		return;
+	} else if (const auto handle = GetCurrentHandle(this)) {
+		refreshAdditionalPaddings(handle);
 	}
-	const auto handle = GetWindowHandle(this);
-	if (!handle) {
-		LOG(("System Error: GetWindowHandle failed."));
-		return;
-	}
-	refreshAdditionalPaddings(handle);
 }
 
 void TitleWidget::refreshAdditionalPaddings(HWND handle) {
