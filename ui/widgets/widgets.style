@@ -655,8 +655,8 @@ defaultLinkButton: LinkButton {
 
 defaultRippleAnimation: RippleAnimation {
 	color: windowBgRipple;
-	showDuration: 650;
-	hideDuration: 200;
+	showDuration: 550;
+	hideDuration: 170;
 }
 
 defaultTable: Table {
@@ -675,7 +675,7 @@ defaultRippleAnimationBgOver: RippleAnimation(defaultRippleAnimation) {
 	color: windowBgOver;
 }
 
-buttonRadius: 4px;
+buttonRadius: 17px;
 
 defaultActiveButton: RoundButton {
 	textFg: activeButtonFg;
@@ -690,7 +690,7 @@ defaultActiveButton: RoundButton {
 	width: -34px;
 	height: 34px;
 	padding: margins(0px, 0px, 0px, 0px);
-	radius: 16px;
+	radius: 17px;
 
 	textTop: 8px;
 
@@ -827,7 +827,7 @@ defaultEmptyShadow: Shadow {
 defaultPanelAnimation: PanelAnimation {
 	startWidth: 0.5;
 	widthDuration: 0.6;
-	startHeight: 0.3;
+	startHeight: 0.45;
 	heightDuration: 0.9;
 	startOpacity: 0.2;
 	opacityDuration: 0.3;
@@ -887,9 +887,9 @@ defaultPopupMenu: PopupMenu {
 
 	menu: defaultMenu;
 
-	radius: 3px;
-	duration: 150;
-	showDuration: 200;
+	radius: 6px;
+	duration: 120;
+	showDuration: 135;
 }
 
 boxTextStyle: TextStyle(defaultTextStyle) {
@@ -911,7 +911,7 @@ defaultInputField: InputField {
 	placeholderScale: 0.9;
 	placeholderShift: -20px;
 	placeholderFont: font(semibold 14px);
-	duration: 150;
+	duration: 135;
 
 	borderFg: inputBorderFg;
 	borderFgActive: activeLineFg;
@@ -990,7 +990,7 @@ defaultMultiSelectSearchCancel: CrossButton {
 	crossFgOver: boxTitleCloseFgOver;
 	crossPosition: point(4px, 4px);
 
-	duration: 150;
+	duration: 135;
 	loadingPeriod: 1000;
 	ripple: defaultRippleAnimationBgOver;
 }
@@ -1019,7 +1019,7 @@ defaultMultiSelect: MultiSelect {
 	fieldCancelSkip: 40px;
 }
 
-widgetFadeDuration: 200;
+widgetFadeDuration: 160;
 
 SettingsSlider {
 	height: pixels;
@@ -1054,7 +1054,7 @@ defaultSettingsSlider: SettingsSlider {
 	labelStyle: defaultTextStyle;
 	labelFg: windowActiveTextFg;
 	labelFgActive: windowActiveTextFg;
-	duration: 150;
+	duration: 135;
 }
 
 defaultTabsSlider: SettingsSlider(defaultSettingsSlider) {
@@ -1085,14 +1085,14 @@ defaultContinuousSlider: MediaSlider {
 	inactiveFgDisabled: windowBg;
 	receivedTillFg: mediaPlayerInactiveFg;
 	seekSize: size(9px, 9px);
-	duration: 150;
+	duration: 135;
 }
 
 defaultRoundCheckbox: RoundCheckbox {
 	border: windowBg;
 	bgActive: windowBgActive;
 	width: 2px;
-	duration: 160;
+	duration: 150;
 	bgDuration: 0.75;
 	fgDuration: 1.;
 }
@@ -1114,7 +1114,7 @@ defaultPeerListCheckbox: RoundImageCheckbox {
 	imageSmallRadius: 18px;
 	selectWidth: 2px;
 	selectFg: windowBgActive;
-	selectDuration: 150;
+	selectDuration: 135;
 	check: defaultPeerListCheck;
 }
 

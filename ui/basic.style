@@ -83,12 +83,12 @@ semiboldTextStyle: TextStyle(defaultTextStyle) {
 	font: semiboldFont;
 }
 
-slideDuration: 240;
+slideDuration: 220;
 slideShift: 100px;
 slideShadow: icon {{ "slide_shadow", slideFadeOutShadowFg }};
 
 slideWrapDuration: 150;
-fadeWrapDuration: 200;
+fadeWrapDuration: 150;
 
 linkCropLimit: 360px;
 linkFont: normalFont;
@@ -103,8 +103,8 @@ noContactsHeight: 100px;
 noContactsFont: font(fsize);
 noContactsColor: windowSubTextFg;
 
-activeFadeInDuration: 500;
-activeFadeOutDuration: 3000;
+activeFadeInDuration: 400;
+activeFadeOutDuration: 2000;
 
 smallCloseIcon: icon {{ "simple_close", smallCloseIconFg }};
 smallCloseIconOver: icon {{ "simple_close", smallCloseIconFgOver }};
