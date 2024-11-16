@@ -19,6 +19,7 @@ class Painter;
 
 namespace style {
 struct IconButton;
+struct PopupMenu;
 } // namespace style
 
 namespace Ui::Menu {
@@ -49,6 +50,7 @@ struct SeparatePanelArgs {
 	QWidget *parent = nullptr;
 	bool onAllSpaces = false;
 	Fn<bool(int zorder)> animationsPaused;
+	const style::PopupMenu *menuSt = nullptr;
 };
 
 class SeparatePanel final : public RpWidget {
@@ -88,7 +90,9 @@ public:
 
 	void updateBackToggled();
 
-	void setMenuAllowed(Fn<void(const Menu::MenuCallback&)> fill);
+	void setMenuAllowed(
+		Fn<void(const Menu::MenuCallback&)> fill,
+		Fn<void(not_null<RpWidget*>, bool fullscreen)> created = nullptr);
 	void setSearchAllowed(
 		rpl::producer<QString> placeholder,
 		Fn<void(std::optional<QString>)> queryChanged);
@@ -98,6 +102,7 @@ public:
 	void overrideBodyColor(std::optional<QColor> color);
 	void overrideBottomBarColor(std::optional<QColor> color);
 	void setBottomBarHeight(int height);
+	[[nodiscard]] style::palette *titleOverridePalette() const;
 
 	base::weak_ptr<Toast::Instance> showToast(Toast::Config &&config);
 	base::weak_ptr<Toast::Instance> showToast(
@@ -141,6 +146,7 @@ private:
 	void updateTitleGeometry(int newWidth) const;
 	void paintShadowBorder(QPainter &p) const;
 	void paintOpaqueBorder(QPainter &p) const;
+	void paintBodyBg(QPainter &p, int radius = 0) const;
 
 	void toggleOpacityAnimation(bool visible);
 	void finishAnimating();
@@ -156,8 +162,10 @@ private:
 	[[nodiscard]] rpl::producer<> allBackRequests() const;
 	[[nodiscard]] rpl::producer<> allCloseRequests() const;
 
+	const style::PopupMenu &_menuSt;
 	object_ptr<IconButton> _close;
 	object_ptr<IconButton> _menuToggle = { nullptr };
+	Fn<void(not_null<RpWidget*>, bool fullscreen)> _menuToggleCreated;
 	object_ptr<FadeWrapScaled<IconButton>> _searchToggle = { nullptr };
 	rpl::variable<QString> _searchPlaceholder;
 	Fn<void(std::optional<QString>)> _searchQueryChanged;
