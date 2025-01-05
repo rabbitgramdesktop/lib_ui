@@ -169,6 +169,7 @@ ScrollArea {
 	bgOver: color;
 	barBg: color;
 	barBgOver: color;
+	barHidden: bool;
 
 	round: pixels;
 
@@ -1022,6 +1023,7 @@ defaultMultiSelect: MultiSelect {
 widgetFadeDuration: 160;
 
 SettingsSlider {
+	padding: pixels;
 	height: pixels;
 	barTop: pixels;
 	barSkip: pixels;
@@ -1043,6 +1045,7 @@ SettingsSlider {
 }
 
 defaultSettingsSlider: SettingsSlider {
+	padding: 0px;
 	height: 39px;
 	barTop: 5px;
 	barSkip: 3px;
