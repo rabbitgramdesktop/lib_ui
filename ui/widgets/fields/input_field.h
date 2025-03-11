@@ -126,7 +126,6 @@ public:
 		MultiLine,
 	};
 	using TagList = TextWithTags::Tags;
-	using CustomEmojiFactory = Text::CustomEmojiFactory;
 
 	struct MarkdownTag {
 		// With each emoji being QChar::ObjectReplacementCharacter.
@@ -213,10 +212,9 @@ public:
 	// (and then to clipboard or to drag-n-drop object), here is a strategy for that.
 	void setTagMimeProcessor(Fn<QString(QStringView)> processor);
 	void setCustomTextContext(
-		Fn<std::any(Fn<void()> repaint)> context,
+		Text::MarkedContext context,
 		Fn<bool()> pausedEmoji = nullptr,
-		Fn<bool()> pausedSpoiler = nullptr,
-		CustomEmojiFactory factory = nullptr);
+		Fn<bool()> pausedSpoiler = nullptr);
 
 	struct EditLinkSelection {
 		int from = 0;
@@ -229,7 +227,7 @@ public:
 	void setEditLinkCallback(
 		Fn<bool(
 			EditLinkSelection selection,
-			QString text,
+			TextWithTags text,
 			QString link,
 			EditLinkAction action)> callback);
 	void setEditLanguageCallback(
@@ -256,7 +254,7 @@ public:
 		const QString &customEmojiData);
 	void commitMarkdownLinkEdit(
 		EditLinkSelection selection,
-		const QString &text,
+		const TextWithTags &textWithTags,
 		const QString &link);
 	[[nodiscard]] static bool IsValidMarkdownLink(QStringView link);
 	[[nodiscard]] static bool IsCustomEmojiLink(QStringView link);
@@ -541,7 +539,7 @@ private:
 
 	Fn<bool(
 		EditLinkSelection selection,
-		QString text,
+		TextWithTags text,
 		QString link,
 		EditLinkAction action)> _editLinkCallback;
 	Fn<void(QString now, Fn<void(QString)> save)> _editLanguageCallback;

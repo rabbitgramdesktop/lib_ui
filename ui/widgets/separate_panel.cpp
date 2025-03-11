@@ -339,7 +339,12 @@ void SeparatePanel::ResizeEdge::mouseReleaseEvent(QMouseEvent *e) {
 void SeparatePanel::ResizeEdge::mouseMoveEvent(QMouseEvent *e) {
 	if (base::take(_press)) {
 		if (const auto handle = window()->windowHandle()) {
-			if (!handle->startSystemResize(_edges)) {
+			if (handle->startSystemResize(_edges)) {
+				SendSynteticMouseEvent(
+					this,
+					QEvent::MouseButtonRelease,
+					Qt::LeftButton);
+			} else {
 				_resizing = true;
 			}
 		}
@@ -671,7 +676,7 @@ void SeparatePanel::updateTitleGeometry(int newWidth) const {
 		if (_titleBadge) {
 			_titleBadge->moveToLeft(
 				rect::right(_title) + st::separatePanelTitleBadgeSkip,
-				_title->y() + (_title->height() - _titleBadge->height()) / 2);
+				_title->y() + st::separatePanelTitleBadgeTop);
 		}
 	}
 	if (_searchWrap) {
@@ -1441,8 +1446,12 @@ void SeparatePanel::paintShadowBorder(QPainter &p) const {
 	const auto corner = QSize(part1, part1) * factor;
 	const auto radius = st::callRadius;
 
-	const auto &header = _titleOverrideColor
+	const auto &header = (_titleHeight
+		&& !_fullscreen.current()
+		&& _titleOverrideColor)
 		? _titleOverrideBorderParts
+		: _bodyOverrideColor
+		? _bodyOverrideBorderParts
 		: _borderParts;
 	const auto &footer = (_bottomBarHeight && _bottomBarOverrideColor)
 		? _bottomBarOverrideBorderParts
