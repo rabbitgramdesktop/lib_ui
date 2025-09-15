@@ -14,7 +14,6 @@
 #include "ui/text/text_utilities.h"
 #include "ui/rect_part.h"
 #include "ui/painter.h"
-#include "ui/qt_weak_factory.h"
 #include "ui/ui_utility.h"
 #include "base/timer.h"
 #include "styles/style_layers.h"
@@ -40,25 +39,25 @@ public:
 	operator bool() const override;
 
 private:
-	BoxShow(QPointer<BoxContent> weak, ShowPtr wrapped);
+	BoxShow(base::weak_qptr<BoxContent> weak, ShowPtr wrapped);
 
 	bool resolve() const;
 
-	const QPointer<Ui::BoxContent> _weak;
+	const base::weak_qptr<Ui::BoxContent> _weak;
 	mutable std::shared_ptr<Show> _wrapped;
 	rpl::lifetime _lifetime;
 
 };
 
 BoxShow::BoxShow(not_null<BoxContent*> box)
-: BoxShow(MakeWeak(box.get()), nullptr) {
+: BoxShow(base::make_weak(box.get()), nullptr) {
 }
 
-BoxShow::BoxShow(QPointer<BoxContent> weak, ShowPtr wrapped)
+BoxShow::BoxShow(base::weak_qptr<BoxContent> weak, ShowPtr wrapped)
 : _weak(weak)
 , _wrapped(std::move(wrapped)) {
 	if (!resolve()) {
-		if (const auto box = _weak.data()) {
+		if (const auto box = _weak.get()) {
 			box->boxClosing(
 			) | rpl::start_with_next([=] {
 				resolve();
@@ -73,7 +72,7 @@ BoxShow::~BoxShow() = default;
 bool BoxShow::resolve() const {
 	if (_wrapped) {
 		return true;
-	} else if (const auto strong = _weak.data()) {
+	} else if (const auto strong = _weak.get()) {
 		if (strong->hasDelegate()) {
 			_wrapped = strong->getDelegate()->showFactory()();
 			return true;
@@ -195,7 +194,7 @@ QPointer<IconButton> BoxContent::addTopButton(
 }
 
 void BoxContent::setInner(
-		object_ptr<TWidget> inner,
+		object_ptr<RpWidget> inner,
 		const style::ScrollArea &st) {
 	if (inner) {
 		getDelegate()->setLayerType(true);
@@ -323,7 +322,7 @@ void BoxContent::scrollByDraggingDelta(int delta) {
 }
 
 void BoxContent::updateInnerVisibleTopBottom() {
-	const auto widget = static_cast<TWidget*>(_scroll
+	const auto widget = static_cast<RpWidget*>(_scroll
 		? _scroll->widget()
 		: nullptr);
 	if (widget) {
@@ -438,8 +437,8 @@ void BoxContent::updateScrollAreaGeometry() {
 	}
 }
 
-object_ptr<TWidget> BoxContent::doTakeInnerWidget() {
-	return _scroll->takeWidget<TWidget>();
+object_ptr<RpWidget> BoxContent::doTakeInnerWidget() {
+	return _scroll->takeWidget<RpWidget>();
 }
 
 void BoxContent::paintEvent(QPaintEvent *e) {

@@ -70,10 +70,6 @@ LinkButton::LinkButton(
 	setCursor(style::cur_pointer);
 }
 
-int LinkButton::naturalWidth() const {
-	return _st.padding.left() + _textWidth + _st.padding.right();
-}
-
 void LinkButton::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
@@ -103,9 +99,11 @@ void LinkButton::setText(const QString &text) {
 }
 
 void LinkButton::resizeToText() {
-	resize(
-		naturalWidth(),
-		_st.padding.top() + _st.font->height + _st.padding.bottom());
+	setNaturalWidth(_st.padding.left() + _textWidth + _st.padding.right());
+}
+
+int LinkButton::resizeGetHeight(int newWidth) {
+	return _st.padding.top() + _st.font->height + _st.padding.bottom();
 }
 
 void LinkButton::setColorOverride(std::optional<QColor> textFg) {
@@ -322,6 +320,11 @@ void RoundButton::setText(rpl::producer<TextWithEntities> text) {
 	_textFull = std::move(text);
 }
 
+void RoundButton::setContext(const Text::MarkedContext &context) {
+	_context = context;
+	resizeToText(_textFull.current());
+}
+
 void RoundButton::setNumbersText(const QString &numbersText, int numbers) {
 	if (numbersText.isEmpty()) {
 		_numbers.reset();
@@ -382,9 +385,10 @@ void RoundButton::resizeToText(const TextWithEntities &text) {
 		_text.setMarkedText(
 			_st.style,
 			{ text.text.toUpper(), text.entities },
-			kMarkupTextOptions);
+			kMarkupTextOptions,
+			_context);
 	} else {
-		_text.setMarkedText(_st.style, text, kMarkupTextOptions);
+		_text.setMarkedText(_st.style, text, kMarkupTextOptions, _context);
 	}
 	int innerWidth = _text.maxWidth() + addedWidth();
 	if (_fullWidthOverride > 0) {
@@ -407,6 +411,7 @@ void RoundButton::resizeToText(const TextWithEntities &text) {
 			_st.width + _st.padding.left() + _st.padding.right(),
 			_st.height + _st.padding.top() + _st.padding.bottom());
 	}
+	setNaturalWidth(width());
 
 	update();
 }
@@ -782,10 +787,12 @@ SettingsButton::SettingsButton(
 SettingsButton::SettingsButton(
 	QWidget *parent,
 	rpl::producer<TextWithEntities> &&text,
-	const style::SettingsButton &st)
+	const style::SettingsButton &st,
+	const Text::MarkedContext &context)
 : RippleButton(parent, st.ripple)
 , _st(st)
-, _padding(_st.padding) {
+, _padding(_st.padding)
+, _context(context) {
 	std::move(
 		text
 	) | rpl::start_with_next([this](TextWithEntities &&value) {
@@ -955,7 +962,7 @@ void SettingsButton::onStateChanged(
 }
 
 void SettingsButton::setText(TextWithEntities &&text) {
-	_text.setMarkedText(_st.style, text, kMarkupTextOptions);
+	_text.setMarkedText(_st.style, text, kMarkupTextOptions, _context);
 	update();
 }
 

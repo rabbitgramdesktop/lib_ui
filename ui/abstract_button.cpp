@@ -7,7 +7,6 @@
 #include "ui/abstract_button.h"
 
 #include "ui/ui_utility.h"
-#include "ui/qt_weak_factory.h"
 #include "ui/integration.h"
 
 #include <QtGui/QtEvents>
@@ -32,12 +31,12 @@ void AbstractButton::leaveEventHook(QEvent *e) {
 	}
 
 	setOver(false, StateChangeSource::ByHover);
-	return TWidget::leaveEventHook(e);
+	return RpWidget::leaveEventHook(e);
 }
 
 void AbstractButton::enterEventHook(QEnterEvent *e) {
 	checkIfOver(mapFromGlobal(QCursor::pos()));
-	return TWidget::enterEventHook(e);
+	return RpWidget::enterEventHook(e);
 }
 
 void AbstractButton::setAcceptBoth(bool acceptBoth) {
@@ -86,7 +85,7 @@ void AbstractButton::clicked(
 		Qt::KeyboardModifiers modifiers,
 		Qt::MouseButton button) {
 	_modifiers = modifiers;
-	const auto weak = MakeWeak(this);
+	const auto weak = base::make_weak(this);
 	if (button == Qt::LeftButton) {
 		if (const auto callback = _clickedCallback) {
 			callback();
@@ -137,7 +136,7 @@ bool AbstractButton::setDown(
 		const auto was = _state;
 		_state &= ~State(StateFlag::Down);
 
-		const auto weak = MakeWeak(this);
+		const auto weak = base::make_weak(this);
 		onStateChanged(was, source);
 		if (weak) {
 			if (was & StateFlag::Over) {

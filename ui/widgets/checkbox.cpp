@@ -8,7 +8,6 @@
 
 #include "ui/effects/ripple_animation.h"
 #include "ui/basic_click_handlers.h"
-#include "ui/qt_weak_factory.h"
 #include "ui/ui_utility.h"
 #include "ui/painter.h"
 #include "styles/palette.h"
@@ -623,11 +622,8 @@ rpl::producer<bool> Checkbox::checkedValue() const {
 }
 
 void Checkbox::resizeToText() {
-	if (_st.width <= 0) {
-		resizeToWidth(_text.maxWidth() - _st.width);
-	} else {
-		resizeToWidth(_st.width);
-	}
+	updateNaturalWidth();
+	resizeToWidth(width(), true);
 }
 
 void Checkbox::setChecked(bool checked, NotifyAboutChange notify) {
@@ -643,15 +639,17 @@ void Checkbox::finishAnimating() {
 	_check->finishAnimating();
 }
 
-int Checkbox::naturalWidth() const {
-	if (_st.width > 0) {
-		return _st.width;
-	}
-	auto result = _st.checkPosition.x() + _check->getSize().width();
-	if (!_text.isEmpty()) {
-		result += _st.textPosition.x() + _text.maxWidth();
-	}
-	return result - _st.width;
+void Checkbox::updateNaturalWidth() {
+	setNaturalWidth([&] {
+		if (_st.width > 0) {
+			return _st.width;
+		}
+		auto result = _st.checkPosition.x() + _check->getSize().width();
+		if (!_text.isEmpty()) {
+			result += _st.textPosition.x() + _text.maxWidth();
+		}
+		return result - _st.width;
+	}());
 }
 
 void Checkbox::paintEvent(QPaintEvent *e) {
@@ -775,7 +773,7 @@ void Checkbox::mouseMoveEvent(QMouseEvent *e) {
 }
 
 void Checkbox::mouseReleaseEvent(QMouseEvent *e) {
-	const auto weak = Ui::MakeWeak(this);
+	const auto weak = base::make_weak(this);
 	if (auto activated = _activatingHandler = ClickHandler::unpressed()) {
 		// _clickHandlerFilter may delete `this`. In that case we don't want
 		// to try to show a context menu or smth like that.

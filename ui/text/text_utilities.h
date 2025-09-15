@@ -109,5 +109,9 @@ inline constexpr auto Upper = details::ToUpperType{};
 
 [[nodiscard]] TextWithEntities WrapEmailPattern(const QString &);
 
+[[nodiscard]] QList<QStringView> Words(QStringView lower);
+
+[[nodiscard]] QString StripUrlProtocol(const QString &link);
+
 } // namespace Text
 } // namespace Ui

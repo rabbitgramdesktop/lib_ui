@@ -111,6 +111,31 @@ private:
 
 };
 
+class PaletteDependentCustomEmoji final : public CustomEmoji {
+public:
+	PaletteDependentCustomEmoji(
+		Fn<QImage()> factory,
+		QString entity,
+		QMargins padding = {});
+
+	int width() override;
+	QString entityData() override;
+	void paint(QPainter &p, const Context &context) override;
+	void unload() override;
+	bool ready() override;
+	bool readyInDefaultState() override;
+
+private:
+	void validateFrame();
+
+	Fn<QImage()> _factory;
+	QString _entity;
+	QMargins _padding;
+	QImage _frame;
+	int _paletteVersion = 0;
+
+};
+
 [[nodiscard]] std::unique_ptr<CustomEmoji> MakeCustomEmoji(
 	QStringView data,
 	const MarkedContext &context);

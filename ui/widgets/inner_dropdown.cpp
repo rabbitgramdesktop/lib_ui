@@ -10,7 +10,6 @@
 #include "ui/widgets/shadow.h"
 #include "ui/effects/panel_animation.h"
 #include "ui/image/image_prepare.h"
-#include "ui/qt_weak_factory.h"
 #include "ui/ui_utility.h"
 
 namespace Ui {
@@ -88,15 +87,16 @@ void InnerDropdown::resizeToContent() {
 }
 
 void InnerDropdown::resizeEvent(QResizeEvent *e) {
-	_scroll->setGeometry(rect().marginsRemoved(_st.padding).marginsRemoved(_st.scrollMargin));
-	if (auto widget = static_cast<TWidget*>(_scroll->widget())) {
+	_scroll->setGeometry(
+		rect().marginsRemoved(_st.padding).marginsRemoved(_st.scrollMargin));
+	if (auto widget = static_cast<RpWidget*>(_scroll->widget())) {
 		widget->resizeToWidth(_scroll->width());
 		scrolled();
 	}
 }
 
 void InnerDropdown::scrolled() {
-	if (auto widget = static_cast<TWidget*>(_scroll->widget())) {
+	if (auto widget = static_cast<RpWidget*>(_scroll->widget())) {
 		int visibleTop = _scroll->scrollTop();
 		int visibleBottom = visibleTop + _scroll->height();
 		widget->setVisibleTopBottom(visibleTop, visibleBottom);
@@ -229,7 +229,7 @@ void InnerDropdown::hideFinished() {
 	_cache = QPixmap();
 	_ignoreShowEvents = false;
 	if (!isHidden()) {
-		const auto weak = Ui::MakeWeak(this);
+		const auto weak = base::make_weak(this);
 		if (const auto onstack = _hiddenCallback) {
 			onstack();
 		}
@@ -255,7 +255,7 @@ void InnerDropdown::prepareCache() {
 }
 
 void InnerDropdown::startOpacityAnimation(bool hiding) {
-	const auto weak = Ui::MakeWeak(this);
+	const auto weak = base::make_weak(this);
 	if (hiding) {
 		if (const auto onstack = _hideStartCallback) {
 			onstack();
@@ -363,7 +363,7 @@ bool InnerDropdown::eventFilter(QObject *obj, QEvent *e) {
 
 int InnerDropdown::resizeGetHeight(int newWidth) {
 	auto newHeight = _st.padding.top() + _st.scrollMargin.top() + _st.scrollMargin.bottom() + _st.padding.bottom();
-	if (auto widget = static_cast<TWidget*>(_scroll->widget())) {
+	if (auto widget = static_cast<RpWidget*>(_scroll->widget())) {
 		auto containerWidth = newWidth - _st.padding.left() - _st.padding.right() - _st.scrollMargin.left() - _st.scrollMargin.right();
 		widget->resizeToWidth(containerWidth);
 		newHeight += widget->height();
@@ -374,7 +374,11 @@ int InnerDropdown::resizeGetHeight(int newWidth) {
 	return newHeight;
 }
 
-InnerDropdown::Container::Container(QWidget *parent, object_ptr<TWidget> child, const style::InnerDropdown &st) : TWidget(parent)
+InnerDropdown::Container::Container(
+	QWidget *parent,
+	object_ptr<RpWidget> child,
+	const style::InnerDropdown &st)
+: RpWidget(parent)
 , _child(std::move(child))
 , _st(st) {
 	_child->setParent(this);
@@ -390,7 +394,7 @@ void InnerDropdown::Container::visibleTopBottomUpdated(
 void InnerDropdown::Container::resizeToContent() {
 	auto newWidth = _st.scrollPadding.left() + _st.scrollPadding.right();
 	auto newHeight = _st.scrollPadding.top() + _st.scrollPadding.bottom();
-	if (auto child = static_cast<TWidget*>(children().front())) {
+	if (auto child = static_cast<RpWidget*>(children().front())) {
 		newWidth += child->width();
 		newHeight += child->height();
 	}

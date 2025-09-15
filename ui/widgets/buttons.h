@@ -30,8 +30,6 @@ class LinkButton : public AbstractButton {
 public:
 	LinkButton(QWidget *parent, const QString &text, const style::LinkButton &st = st::defaultLinkButton);
 
-	int naturalWidth() const override;
-
 	void setText(const QString &text);
 	void setColorOverride(std::optional<QColor> textFg);
 
@@ -42,6 +40,8 @@ protected:
 
 private:
 	void resizeToText();
+
+	int resizeGetHeight(int newWidth) override;
 
 	const style::LinkButton &_st;
 	QString _text;
@@ -132,6 +132,7 @@ public:
 
 	void setText(rpl::producer<QString> text);
 	void setText(rpl::producer<TextWithEntities> text);
+	void setContext(const Text::MarkedContext &context);
 
 	void setNumbersText(const QString &numbersText) {
 		setNumbersText(numbersText, numbersText.toInt());
@@ -181,6 +182,7 @@ private:
 	std::optional<QPen> _penOverride;
 	RoundRect _roundRect;
 	RoundRect _roundRectOver;
+	Text::MarkedContext _context;
 
 	TextTransform _transform = TextTransform::ToUpper;
 	bool _fullRadius = false;
@@ -270,7 +272,8 @@ public:
 	SettingsButton(
 		QWidget *parent,
 		rpl::producer<TextWithEntities> &&text,
-		const style::SettingsButton &st = st::defaultSettingsButton);
+		const style::SettingsButton &st = st::defaultSettingsButton,
+		const Text::MarkedContext &context = {});
 	SettingsButton(
 		QWidget *parent,
 		nullptr_t,
@@ -316,6 +319,7 @@ private:
 	Ui::Text::String _text;
 	std::unique_ptr<Ui::ToggleView> _toggle;
 	std::optional<QColor> _textColorOverride;
+	Text::MarkedContext _context;
 
 };
 

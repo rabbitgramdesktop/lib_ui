@@ -171,9 +171,12 @@ TextWithEntities RichLangValue(const QString &text) {
 }
 
 TextWithEntities SingleCustomEmoji(QString data, QString text) {
+	if (text.isEmpty()) {
+		text = u"@"_q;
+	}
 	return {
-		text.isEmpty() ? u"@"_q : text,
-		{ EntityInText(EntityType::CustomEmoji, 0, 1, data) },
+		text,
+		{ EntityInText(EntityType::CustomEmoji, 0, text.size(), data)},
 	};
 }
 
@@ -265,6 +268,21 @@ TextWithEntities WrapEmailPattern(const QString &pattern) {
 		return result;
 	}
 	return { pattern };
+}
+
+QList<QStringView> Words(QStringView lower) {
+	static const auto kRegWords = QRegularExpression(
+		u"[\\W]"_q,
+		QRegularExpression::UseUnicodePropertiesOption);
+	return lower.split(kRegWords, Qt::SkipEmptyParts);
+}
+
+QString StripUrlProtocol(const QString &link) {
+	return link.startsWith(u"https://"_q)
+		? link.mid(8)
+		: link.startsWith(u"http://"_q)
+		? link.mid(7)
+		: link;
 }
 
 } // namespace Text

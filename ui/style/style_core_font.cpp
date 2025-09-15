@@ -8,14 +8,18 @@
 
 #include "base/algorithm.h"
 #include "base/debug_log.h"
-#include "base/variant.h"
 #include "base/base_file_utilities.h"
 #include "ui/integration.h"
 
 #include <QtCore/QMap>
 #include <QtCore/QVector>
+#include <QtCore/QDir>
 #include <QtGui/QFontInfo>
 #include <QtGui/QFontDatabase>
+
+#if __has_include(<glib.h>)
+#include <glib.h>
+#endif // __has_include(<glib.h>)
 
 void style_InitFontsResource() {
 #ifdef Q_OS_MAC // Use resources from the .app bundle on macOS.
@@ -66,19 +70,6 @@ ResolvedFont::ResolvedFont(FontResolveResult result, FontVariants *modified)
 
 namespace {
 
-#ifndef LIB_UI_USE_PACKAGED_FONTS
-const auto FontTypes = std::array{
-	u"OpenSans-Regular"_q,
-	u"OpenSans-Italic"_q,
-	u"OpenSans-SemiBold"_q,
-	u"OpenSans-SemiBoldItalic"_q,
-};
-const auto PersianFontTypes = std::array{
-	u"Vazirmatn-UI-NL-Regular"_q,
-	u"Vazirmatn-UI-NL-SemiBold"_q,
-};
-#endif // !LIB_UI_USE_PACKAGED_FONTS
-
 bool Started = false;
 
 base::flat_map<QString, int> FontFamilyIndices;
@@ -109,7 +100,6 @@ base::flat_map<uint64, uint32> QtFontsKeys;
 		| (uint64(font.pixelSize()));
 }
 
-#ifndef LIB_UI_USE_PACKAGED_FONTS
 bool LoadCustomFont(const QString &filePath) {
 	auto regularId = QFontDatabase::addApplicationFont(filePath);
 	if (regularId < 0) {
@@ -123,7 +113,6 @@ bool LoadCustomFont(const QString &filePath) {
 
 	return true;
 }
-#endif // !LIB_UI_USE_PACKAGED_FONTS
 
 [[nodiscard]] QString SystemMonospaceFont() {
 	const auto type = QFontDatabase::FixedFont;
@@ -326,9 +315,6 @@ struct Metrics {
 		font.setFamily(family);
 	} else {
 		font.setFamily("Open Sans"_q);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-		font.setFeature("ss03", true);
-#endif // Qt >= 6.7.0
 	}
 	font.setPixelSize(size);
 
@@ -375,17 +361,24 @@ void StartFonts() {
 
 	style_InitFontsResource();
 
-#ifndef LIB_UI_USE_PACKAGED_FONTS
-	const auto base = u":/gui/fonts/"_q;
 	const auto name = u"Open Sans"_q;
 
-	for (const auto &file : FontTypes) {
-		LoadCustomFont(base + file + u".ttf"_q);
+	for (const auto &file : QDir(u":/gui/fonts/"_q).entryInfoList()) {
+		LoadCustomFont(file.canonicalFilePath());
 	}
 
-	for (const auto &file : PersianFontTypes) {
-		LoadCustomFont(base + file + u".ttf"_q);
+	if (!QFontInfo(name).family().trimmed().startsWith(
+			name,
+			Qt::CaseInsensitive)) {
+		const auto text = u"Unable to load '"_q
+			+ name
+			+ u"', expect font metric issues."_q;
+		LOG(("Font Error: %1").arg(text));
+#if __has_include(<glib.h>)
+		g_warning("%s", text.toUtf8().constData());
+#endif //  __has_include(<glib.h>)
 	}
+
 	QFont::insertSubstitution(name, u"Vazirmatn UI NL"_q);
 
 #ifdef Q_OS_MAC
@@ -397,7 +390,6 @@ void StartFonts() {
 	};
 	QFont::insertSubstitutions(name, list);
 #endif // Q_OS_MAC
-#endif // !LIB_UI_USE_PACKAGED_FONTS
 }
 
 void DestroyFonts() {
