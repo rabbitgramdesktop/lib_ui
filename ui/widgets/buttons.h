@@ -276,7 +276,7 @@ public:
 		const Text::MarkedContext &context = {});
 	SettingsButton(
 		QWidget *parent,
-		nullptr_t,
+		std::nullptr_t,
 		const style::SettingsButton &st = st::defaultSettingsButton);
 	~SettingsButton();
 
