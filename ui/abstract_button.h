@@ -53,7 +53,7 @@ public:
 	template <typename Handler>
 	void addClickHandler(Handler &&handler) {
 		clicks(
-		) | rpl::start_with_next(
+		) | rpl::on_next(
 			std::forward<Handler>(handler),
 			lifetime());
 	}
@@ -64,6 +64,7 @@ public:
 		return QAccessible::Role::Button;
 	}
 	AccessibilityState accessibilityState() const override;
+	void accessibilityDoAction(const QString &name) override;
 
 protected:
 	void enterEventHook(QEnterEvent *e) override;

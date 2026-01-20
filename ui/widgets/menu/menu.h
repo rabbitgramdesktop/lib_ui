@@ -71,7 +71,8 @@ public:
 	void setShowSource(TriggeredSource source);
 	void setForceWidth(int forceWidth);
 
-	const std::vector<not_null<QAction*>> &actions() const;
+	[[nodiscard]] const std::vector<not_null<QAction*>> &actions() const;
+	[[nodiscard]] ItemBase *itemForAction(not_null<QAction*> action) const;
 
 	void setActivatedCallback(Fn<void(const CallbackData &data)> callback) {
 		_activatedCallback = std::move(callback);
@@ -102,6 +103,8 @@ public:
 	}
 	void handleMouseRelease(QPoint globalPosition);
 
+	void handlePressedOutside(QPoint globalPosition);
+
 	void setSelected(int selected, bool isMouseSelection);
 
 	[[nodiscard]] rpl::producer<> resizesFromInner() const;
@@ -130,6 +133,11 @@ private:
 	[[nodiscard]] int recountHeight() const;
 	void resizeFromInner(int w, int h);
 
+	[[nodiscard]] QRect visibleRect() const;
+	void visibleTopBottomUpdated(
+		int visibleTop,
+		int visibleBottom) override;
+
 	const style::Menu &_st;
 
 	Fn<void(const CallbackData &data)> _activatedCallback;
@@ -144,7 +152,10 @@ private:
 	std::vector<base::unique_qptr<ItemBase>> _actionWidgets;
 
 	int _forceWidth = 0;
+	int _visibleTop = 0;
+	int _visibleBottom = 0;
 	bool _lastSelectedByMouse = false;
+	bool _pressedOutside = false;
 
 	QPointer<QAction> _childShownAction;
 
