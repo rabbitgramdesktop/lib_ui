@@ -2201,7 +2201,10 @@ void InputField::setMode(Mode mode) {
 	forceProcessContentsChanges();
 }
 
-void InputField::insertTag(const QString &text, QString tagId) {
+void InputField::insertTag(
+		const QString &text,
+		QString tagId,
+		QString suffix) {
 	auto cursor = textCursor();
 	const auto position = cursor.position();
 
@@ -2271,13 +2274,14 @@ void InputField::insertTag(const QString &text, QString tagId) {
 		}
 		break;
 	}
+	const auto insertText = text + suffix + ' ';
 	if (tagId.isEmpty()) {
-		cursor.insertText(text + ' ', _defaultCharFormat);
+		cursor.insertText(insertText, _defaultCharFormat);
 	} else {
 		_insertedTags.clear();
 		_insertedTags.push_back({ 0, int(text.size()), tagId });
 		_insertedTagsAreFromMime = false;
-		cursor.insertText(text + ' ');
+		cursor.insertText(insertText);
 		_insertedTags.clear();
 	}
 }
