@@ -208,7 +208,10 @@ public:
 		int start,
 		int end = -1) const;
 	[[nodiscard]] TextWithTags getTextWithAppliedMarkdown() const;
-	void insertTag(const QString &text, QString tagId = QString());
+	void insertTag(
+		const QString &text,
+		QString tagId = QString(),
+		QString suffix = QString());
 	[[nodiscard]] bool empty() const {
 		return _lastTextWithTags.text.isEmpty();
 	}
