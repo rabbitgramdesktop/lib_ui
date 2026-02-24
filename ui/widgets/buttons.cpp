@@ -500,13 +500,17 @@ void RoundButton::paintEvent(QPaintEvent *e) {
 	}
 
 	const auto textTop = _st.padding.top() + _st.textTop;
+	const auto numbersGap = (_numbers && _text.maxWidth()) 
+		? _st.numbersSkip 
+		: 0;
 	auto textLeft = _st.padding.left()
 		+ ((width()
 			- innerWidth
+			- numbersGap
 			- _st.padding.left()
 			- _st.padding.right()) / 2);
 	if (_fullWidthOverride < 0) {
-		textLeft = -_fullWidthOverride / 2;
+		textLeft = (-_fullWidthOverride - numbersGap) / 2;
 	}
 	if (!_st.icon.empty() && _st.iconPosition.x() < 0) {
 		textLeft += _st.icon.width() - _st.iconPosition.x();

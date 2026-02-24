@@ -704,7 +704,7 @@ defaultRippleAnimationBgOver: RippleAnimation(defaultRippleAnimation) {
 	color: windowBgOver;
 }
 
-buttonRadius: 17px;
+buttonRadius: 10px;
 
 defaultActiveButton: RoundButton {
 	textFg: activeButtonFg;
@@ -719,7 +719,7 @@ defaultActiveButton: RoundButton {
 	width: -34px;
 	height: 34px;
 	padding: margins(0px, 0px, 0px, 0px);
-	radius: 17px;
+	radius: 10px;
 
 	textTop: 8px;
 
