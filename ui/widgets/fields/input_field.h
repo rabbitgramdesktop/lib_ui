@@ -312,7 +312,6 @@ public:
 		SubmitSettings settings,
 		Qt::KeyboardModifiers modifiers);
 	void customUpDown(bool isCustom);
-	void customTab(bool isCustom);
 	int borderAnimationStart() const;
 
 	not_null<QTextDocument*> document();
@@ -364,7 +363,7 @@ public:
 
 	[[nodiscard]] rpl::producer<> heightChanges() const;
 	[[nodiscard]] rpl::producer<bool> focusedChanges() const;
-	[[nodiscard]] rpl::producer<> tabbed() const;
+	[[nodiscard]] rpl::producer<not_null<bool*>> tabbed() const;
 	[[nodiscard]] rpl::producer<> cancelled() const;
 	[[nodiscard]] rpl::producer<> changes() const;
 	[[nodiscard]] rpl::producer<Qt::KeyboardModifiers> submits() const;
@@ -609,7 +608,6 @@ private:
 	bool _inHeightCheck = false;
 
 	bool _customUpDown = false;
-	bool _customTab = false;
 
 	rpl::variable<QString> _placeholderFull;
 	QString _placeholder;
@@ -657,7 +655,7 @@ private:
 
 	rpl::event_stream<bool> _focusedChanges;
 	rpl::event_stream<> _heightChanges;
-	rpl::event_stream<> _tabbed;
+	rpl::event_stream<not_null<bool*>> _tabbed;
 	rpl::event_stream<> _cancelled;
 	rpl::event_stream<> _changes;
 	rpl::event_stream<Qt::KeyboardModifiers> _submits;

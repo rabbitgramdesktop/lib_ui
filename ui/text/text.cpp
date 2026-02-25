@@ -782,27 +782,8 @@ void String::setCustomEmojiClickHandler(
 		return;
 	}
 	const auto extended = ensureExtended();
-	uint16 handlerIndex = 0;
-	for (const auto &block : _blocks) {
-		if (block->type() == TextBlockType::CustomEmoji) {
-			const auto index = block->linkIndex();
-			if (index
-				&& (index > int(extended->links.size())
-					|| !extended->links[index - 1])) {
-				handlerIndex = index;
-				break;
-			}
-		}
-	}
-	if (!handlerIndex) {
-		return;
-	}
-	if (int(extended->links.size()) < handlerIndex) {
-		extended->links.resize(handlerIndex);
-	}
 	extended->customEmoji = std::make_unique<CustomEmojiData>();
 	const auto data = extended->customEmoji.get();
-	data->handlerIndex = handlerIndex;
 	data->predicate = std::move(predicate);
 	data->callback = std::move(callback);
 	data->link = std::make_shared<CustomEmojiClickHandler>(data);
@@ -946,7 +927,7 @@ void String::insertModifications(int position, int delta) {
 		modifications.insert(i, {
 			.position = position,
 			.skipped = uint16(delta < 0 ? (-delta) : 0),
-			.added = (delta > 0),
+			.added = uint16(delta > 0 ? 1 : 0),
 		});
 	}
 }
@@ -961,13 +942,31 @@ void String::removeModificationsAfter(int size) {
 		if (i->position > size) {
 			i = modifications.erase(i);
 		} else if (i->position == size) {
-			i->added = false;
+			i->added = 0;
 			if (!i->skipped) {
 				i = modifications.erase(i);
 			}
 		} else {
 			break;
 		}
+	}
+}
+
+void String::insertReplacement(int position, int skipped, int added) {
+	auto &modifications = ensureExtended()->modifications;
+	auto i = end(modifications);
+	while (i != begin(modifications) && (i - 1)->position > position) {
+		--i;
+	}
+	if (i != end(modifications) && i->position == position) {
+		i->skipped += uint16(skipped);
+		i->added += uint16(added);
+	} else {
+		modifications.insert(i, {
+			.position = position,
+			.skipped = uint16(skipped),
+			.added = uint16(added),
+		});
 	}
 }
 
@@ -1534,10 +1533,7 @@ void String::enumerateText(
 				return 0;
 			}
 			const auto result = (*i)->linkIndex();
-			return (result
-				&& _extended
-				&& result <= int(_extended->links.size())
-				&& _extended->links[result - 1])
+			return (result && _extended && _extended->links[result - 1])
 				? result
 				: 0;
 		}();
@@ -1659,6 +1655,10 @@ bool String::hasNotEmojiAndSpaces() const {
 const std::vector<Modification> &String::modifications() const {
 	static const auto kEmpty = std::vector<Modification>();
 	return _extended ? _extended->modifications : kEmpty;
+}
+
+int32 String::nextFormattedDateUpdate() const {
+	return _extended ? _extended->nextFormattedDateUpdate : 0;
 }
 
 QString String::toString(TextSelection selection) const {

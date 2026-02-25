@@ -112,7 +112,6 @@ struct CustomEmojiData {
 	Fn<bool(QStringView)> predicate;
 	Fn<void(QStringView, ClickContext)> callback;
 	mutable QString entityData;
-	uint16 handlerIndex = 0;
 
 };
 
@@ -122,6 +121,7 @@ struct ExtendedData {
 	std::unique_ptr<SpoilerData> spoiler;
 	std::unique_ptr<CustomEmojiData> customEmoji;
 	std::vector<Modification> modifications;
+	int32 nextFormattedDateUpdate = 0;
 
 };
 

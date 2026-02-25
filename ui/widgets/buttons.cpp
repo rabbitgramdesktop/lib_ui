@@ -890,6 +890,13 @@ AccessibilityState SettingsButton::accessibilityState() const {
 	return { .checkable = true, .checked = _toggle->checked() };
 }
 
+QAccessible::Role SettingsButton::accessibilityRole() {
+	if (_toggle) {
+		return QAccessible::Role::CheckBox;
+	}
+	return Ui::RippleButton::accessibilityRole();
+}
+
 void SettingsButton::setToggleLocked(bool locked) {
 	if (_toggle) {
 		_toggle->setLocked(locked);
@@ -997,13 +1004,17 @@ int SettingsButton::resizeGetHeight(int newWidth) {
 void SettingsButton::onStateChanged(
 		State was,
 		StateChangeSource source) {
-	if (!isDisabled() || !isDown()) {
+	const auto wasDisabled = !!(was & StateFlag::Disabled);
+	const auto nowDisabled = isDisabled();
+	if (!nowDisabled || !isDown()) {
 		RippleButton::onStateChanged(was, source);
 	}
 	if (_toggle) {
 		_toggle->setStyle(isOver() ? _st.toggleOver : _st.toggle);
 	}
-	setPointerCursor(!isDisabled());
+	if (nowDisabled != wasDisabled) {
+		setPointerCursor(!isDisabled());
+	}
 }
 
 void SettingsButton::setText(TextWithEntities &&text) {
