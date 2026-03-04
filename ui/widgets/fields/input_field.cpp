@@ -255,6 +255,10 @@ QVariant InputDocument::loadResource(int type, const QUrl &name) {
 	return link.startsWith(InputField::kCustomEmojiTagStart);
 }
 
+[[nodiscard]] bool IsCustomDateLink(QStringView link) {
+	return link.startsWith(InputField::kCustomDateTagStart);
+}
+
 [[nodiscard]] QString MakeUniqueCustomEmojiLink(QStringView link) {
 	if (!IsCustomEmojiLink(link)) {
 		return link.toString();
@@ -501,6 +505,9 @@ public:
 		const auto check = [&](Edge edge) {
 			if (_position > 0) {
 				const auto before = text[_position - 1];
+				if (tag == kTagPre && before != '\n' && before != '\r') {
+					return false;
+				}
 				if ((edge == Edge::Open && !isGoodBefore(before))
 					|| (edge == Edge::Close && isBadBefore(before))) {
 					return false;
@@ -1310,6 +1317,7 @@ const QString InputField::kTagSpoiler = u"||"_q;
 const QString InputField::kTagBlockquote = u">"_q;
 const QString InputField::kTagBlockquoteCollapsed = u">^"_q;
 const QString InputField::kCustomEmojiTagStart = u"custom-emoji://"_q;
+const QString InputField::kCustomDateTagStart = u"custom-date://"_q;
 const int InputField::kCollapsedQuoteFormat = ::Ui::kCollapsedQuoteFormat;
 const int InputField::kCustomEmojiFormat = ::Ui::kCustomEmojiFormat;
 const int InputField::kCustomEmojiId = ::Ui::kCustomEmojiId;
@@ -1674,6 +1682,7 @@ std::vector<InputField::MarkdownAction> InputField::MarkdownActions() {
 		{ kSpoilerSequence, kTagSpoiler },
 		{ kClearFormatSequence, QString() },
 		{ kEditLinkSequence, QString(), MarkdownActionType::EditLink },
+		{ kEditDateSequence, QString(), MarkdownActionType::EditDate },
 	};
 }
 
@@ -1721,6 +1730,15 @@ bool InputField::executeMarkdownAction(MarkdownAction action) {
 		editMarkdownLink({
 			cursor.selectionStart(),
 			cursor.selectionEnd()
+		});
+	} else if (action.type == MarkdownActionType::EditDate) {
+		if (!_editLinkCallback) {
+			return false;
+		}
+		const auto cursor = textCursor();
+		editMarkdownDate({
+			cursor.selectionStart(),
+			cursor.selectionEnd(),
 		});
 	} else if (action.tag.isEmpty()) {
 		clearSelectionMarkdown();
@@ -4322,16 +4340,18 @@ auto InputField::editLinkSelection(QContextMenuEvent *e) const
 	};
 }
 
-void InputField::editMarkdownLink(EditLinkSelection selection) {
-	if (!_editLinkCallback) {
-		return;
-	}
+TextWithTags InputField::prepareTextStrippingLinks(
+		EditLinkSelection selection,
+		EditLinkData *outData) {
 	const auto data = selectionEditLinkData(selection);
+	if (outData) {
+		*outData = data;
+	}
 	auto text = getTextWithTagsPart(data.from, data.till);
 	for (auto i = text.tags.begin(); i != text.tags.end();) {
 		auto all = TextUtilities::SplitTags(i->id);
 		for (auto j = all.begin(); j != all.end();) {
-			if (IsValidMarkdownLink(*j)) {
+			if (IsValidMarkdownLink(*j) || IsCustomDateLink(*j)) {
 				j = all.erase(j);
 			} else {
 				++j;
@@ -4344,7 +4364,31 @@ void InputField::editMarkdownLink(EditLinkSelection selection) {
 			++i;
 		}
 	}
+	return text;
+}
+
+void InputField::editMarkdownLink(EditLinkSelection selection) {
+	if (!_editLinkCallback) {
+		return;
+	}
+	auto data = EditLinkData();
+	auto text = prepareTextStrippingLinks(selection, &data);
 	_editLinkCallback(selection, text, data.link, EditLinkAction::Edit);
+}
+
+void InputField::editMarkdownDate(EditLinkSelection selection) {
+	if (!_editLinkCallback) {
+		return;
+	}
+	auto data = EditLinkData();
+	auto text = prepareTextStrippingLinks(selection, &data);
+	if (text.text.isEmpty() && !IsCustomDateLink(data.link)) {
+		return;
+	}
+	const auto existingDate = IsCustomDateLink(data.link)
+		? data.link
+		: (kCustomDateTagStart + u"0"_q);
+	_editLinkCallback(selection, text, existingDate, EditLinkAction::Edit);
 }
 
 void InputField::inputMethodEventInner(QInputMethodEvent *e) {
@@ -4811,11 +4855,17 @@ void InputField::finishMarkdownTagChange(
 }
 
 bool InputField::IsValidMarkdownLink(QStringView link) {
-	return ::Ui::IsValidMarkdownLink(link) && !::Ui::IsCustomEmojiLink(link);
+	return ::Ui::IsValidMarkdownLink(link)
+		&& !::Ui::IsCustomEmojiLink(link)
+		&& !::Ui::IsCustomDateLink(link);
 }
 
 bool InputField::IsCustomEmojiLink(QStringView link) {
 	return ::Ui::IsCustomEmojiLink(link);
+}
+
+bool InputField::IsCustomDateLink(QStringView link) {
+	return ::Ui::IsCustomDateLink(link);
 }
 
 QString InputField::CustomEmojiLink(QStringView entityData) {
@@ -4836,7 +4886,7 @@ void InputField::commitMarkdownLinkEdit(
 		const TextWithTags &textWithTags,
 		const QString &link) {
 	if (textWithTags.text.isEmpty()
-		|| !IsValidMarkdownLink(link)
+		|| (!IsValidMarkdownLink(link) && !IsCustomDateLink(link))
 		|| !_editLinkCallback) {
 		return;
 	}
@@ -4851,7 +4901,7 @@ void InputField::commitMarkdownLinkEdit(
 				auto all = TextUtilities::SplitTags(i->id);
 				auto j = all.begin();
 				for (; j != all.end(); ++j) {
-					if (IsValidMarkdownLink(*j)) {
+					if (IsValidMarkdownLink(*j) || IsCustomDateLink(*j)) {
 						*j = link;
 						break;
 					}
@@ -5172,6 +5222,13 @@ void InputField::addMarkdownActions(
 		if (_editLinkCallback) {
 			submenu->addSeparator();
 			addlink();
+			const auto dateSelection = editLinkSelection(e);
+			const auto dateData = selectionEditLinkData(dateSelection);
+			const auto overDate = IsCustomDateLink(dateData.link);
+			const auto dateDisabled = !hasText && !overDate;
+			add(integration.phraseFormattingDate(), kEditDateSequence, dateDisabled, [=] {
+				editMarkdownDate(dateSelection);
+			});
 		}
 	}
 
