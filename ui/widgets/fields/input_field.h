@@ -261,7 +261,9 @@ public:
 	void setAdditionalMargins(QMargins margins);
 
 	void setInstantReplaces(const InstantReplaces &replaces);
-	void setInstantReplacesEnabled(rpl::producer<bool> enabled);
+	void setInstantReplacesEnabled(
+		rpl::producer<bool> enabled,
+		rpl::producer<bool> systemTextReplacesEnabled = {});
 	void setMarkdownReplacesEnabled(bool enabled);
 	void setMarkdownReplacesEnabled(rpl::producer<MarkdownEnabledState> enabled);
 	void setExtendedContextMenu(rpl::producer<ExtendedContextMenu> value);
@@ -482,6 +484,11 @@ private:
 	const InstantReplaces &instantReplaces() const;
 	void processInstantReplaces(const QString &appended);
 	void applyInstantReplace(const QString &what, const QString &with);
+	void processSystemTextReplaces(const QString &appended);
+	void applySystemTextReplace(
+		uint64 id,
+		int matchLength,
+		const QString &replacement);
 
 	struct EditLinkData {
 		int from = 0;
@@ -655,6 +662,18 @@ private:
 
 	InstantReplaces _mutableInstantReplaces;
 	bool _instantReplacesEnabled = true;
+
+	struct SystemTextReplaces {
+		struct PendingCheck {
+			uint64 id = 0;
+			QTextCursor endAnchor;
+			QString textSent;
+		};
+		std::vector<PendingCheck> pending;
+		uint64 nextId = 0;
+	};
+	std::unique_ptr<SystemTextReplaces> _systemTextReplaces;
+	bool _systemTextReplacesEnabled = true;
 
 	rpl::event_stream<DocumentChangeInfo> _documentContentsChanges;
 	rpl::event_stream<MarkdownTag> _markdownTagApplies;
