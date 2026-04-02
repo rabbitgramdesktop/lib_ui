@@ -23,7 +23,6 @@
 class QMenu;
 class QShortcut;
 class QTextEdit;
-class QTouchEvent;
 class QContextMenuEvent;
 class Painter;
 
@@ -256,6 +255,8 @@ public:
 		std::shared_ptr<QContextMenuEvent> event;
 	};
 
+	void setPlaceholderColorOverride(const style::color &color);
+
 	void setDocumentMargin(float64 margin);
 	void setAdditionalMargin(int margin);
 	void setAdditionalMargins(QMargins margins);
@@ -290,6 +291,7 @@ public:
 		int afterSymbols = 0);
 	void setPlaceholderHidden(bool forcePlaceholderHidden);
 	void setDisplayFocused(bool focused);
+	[[nodiscard]] QMargins fullTextMargins() const;
 	void finishAnimating();
 	void setFocusFast() {
 		setDisplayFocused(true);
@@ -407,7 +409,6 @@ private:
 	void handleContentsChanged();
 	void updateRootFrameFormat();
 	bool viewportEventInner(QEvent *e);
-	void handleTouchEvent(QTouchEvent *e);
 
 	void updatePalette();
 	void refreshPlaceholder(const QString &text);
@@ -556,10 +557,8 @@ private:
 		TextRange range);
 	void trippleEnterExitBlock(QTextCursor &cursor);
 
-	void touchUpdate(QPoint globalPosition);
-	void touchFinish();
-
 	const style::InputField &_st;
+	std::optional<style::color> _placeholderFgOverride;
 	Fn<not_null<Ui::Text::QuotePaintCache*>()> _preCache;
 	Fn<not_null<Ui::Text::QuotePaintCache*>()> _blockquoteCache;
 
@@ -641,13 +640,6 @@ private:
 
 	bool _focused = false;
 	bool _error = false;
-
-	base::Timer _touchTimer;
-	bool _touchPress = false;
-	bool _touchRightButton = false;
-	bool _touchMove = false;
-	bool _mousePressedInTouch = false;
-	QPoint _touchStart;
 
 	bool _correcting = false;
 	MimeDataHook _mimeDataHook;
