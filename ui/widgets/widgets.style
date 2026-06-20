@@ -297,6 +297,7 @@ InputField {
 	textBg: color;
 	textBgActive: color; // Used only with borderRadius.
 	textFg: color;
+	textMarkBg: color;
 	textMargins: margins;
 	textAlign: align;
 
@@ -633,7 +634,9 @@ SideBarButton {
 	textFg: color;
 	textFgActive: color;
 	badgeBg: color;
+	badgeBgActive: color;
 	badgeBgMuted: color;
+	badgeBgMutedActive: color;
 	badgeFg: color;
 	ripple: RippleAnimation;
 }
@@ -1040,6 +1043,7 @@ defaultInputField: InputField {
 	textBg: windowBg;
 	textBgActive: windowBg;
 	textFg: windowFg;
+	textMarkBg: windowBgOver;
 	textMargins: margins(0px, 28px, 0px, 4px);
 	textAlign: align(topleft);
 
@@ -1372,6 +1376,9 @@ historySendActionChooseStickerEyeWidth: 7px;
 historySendActionChooseStickerEyeHeight: 11px;
 historySendActionChooseStickerEyeStep: 2px;
 
+historySendActionRoundPosition: point(3px, -4px);
+historySendActionRoundRadius: 4px;
+
 PeerListItem {
 	left: pixels;
 	bottom: pixels;
@@ -1539,7 +1546,9 @@ defaultSideBarButton: SideBarButton {
 	textFg: sideBarTextFg;
 	textFgActive: sideBarTextFgActive;
 	badgeBg: sideBarBadgeBg;
+	badgeBgActive: sideBarBadgeBgActive;
 	badgeBgMuted: sideBarBadgeBgMuted;
+	badgeBgMutedActive: sideBarBadgeBgMutedActive;
 	badgeFg: sideBarBadgeFg;
 	ripple: RippleAnimation(defaultRippleAnimation) {
 		color: sideBarBgRipple;
