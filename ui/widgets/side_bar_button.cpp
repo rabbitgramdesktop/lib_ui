@@ -11,6 +11,7 @@
 #include "styles/style_widgets.h"
 
 #include <QtGui/QtEvents>
+#include <QAccessible>
 
 namespace Ui {
 namespace {
@@ -52,7 +53,28 @@ void SideBarButton::setActive(bool active) {
 		return;
 	}
 	_active = active;
+	if (isPageTab()) {
+		// Announce selection via a dedicated selection event (the Windows
+		// bridge maps these to UIA_SelectionItem_ElementSelected); a generic
+		// state-change event is ignored for the selected state.
+		auto event = QAccessibleEvent(
+			this,
+			active ? QAccessible::SelectionAdd : QAccessible::SelectionRemove);
+		QAccessible::updateAccessibility(&event);
+	}
 	update();
+}
+
+AccessibilityState SideBarButton::accessibilityState() const {
+	// Merge the base state so non-tab buttons keep reporting `pressed`. A page
+	// tab is selectable and exposes the active one as selected - persistently,
+	// independent of keyboard focus.
+	auto state = RippleButton::accessibilityState();
+	if (isPageTab()) {
+		state.selectable = true;
+		state.selected = _active;
+	}
+	return state;
 }
 
 void SideBarButton::setBadge(const QString &badge, bool muted) {

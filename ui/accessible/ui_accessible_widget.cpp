@@ -91,6 +91,14 @@ not_null<RpWidget*> Widget::rp() const {
 // Interface cast.
 
 void *Widget::interface_cast(QAccessible::InterfaceType type) {
+	if (type == QAccessible::SelectionInterface
+		&& rp()->accessibilityRole() == QAccessible::PageTabList) {
+		return static_cast<QAccessibleSelectionInterface*>(this);
+	}
+	if (type == QAccessible::AttributesInterface
+		&& rp()->accessibilityOrientation().has_value()) {
+		return static_cast<QAccessibleAttributesInterface*>(this);
+	}
 	return QAccessibleWidget::interface_cast(type);
 }
 
@@ -134,6 +142,10 @@ int Widget::childCount() const {
 	if (count >= 0) {
 		return count;
 	}
+	const auto widgets = rp()->accessibilityChildWidgets();
+	if (!widgets.empty()) {
+		return int(widgets.size());
+	}
 	return QAccessibleWidget::childCount();
 }
 
@@ -144,12 +156,30 @@ QAccessibleInterface* Widget::child(int index) const {
 	if (const auto customInterface = rp()->accessibilityChildInterface(index)) {
 		return customInterface;
 	}
+	const auto widgets = rp()->accessibilityChildWidgets();
+	if (!widgets.empty()) {
+		return (index < int(widgets.size()))
+			? QAccessible::queryAccessibleInterface(widgets[index].get())
+			: nullptr;
+	}
 	return QAccessibleWidget::child(index);
 }
 
 int Widget::indexOfChild(const QAccessibleInterface* child) const {
 	if (const auto item = dynamic_cast<const Ui::Accessible::Item*>(child)) {
 		return item->index();
+	}
+	if (child) {
+		const auto widgets = rp()->accessibilityChildWidgets();
+		if (!widgets.empty()) {
+			const auto object = child->object();
+			for (auto i = 0; i != int(widgets.size()); ++i) {
+				if (widgets[i].get() == object) {
+					return i;
+				}
+			}
+			return -1;
+		}
 	}
 	return QAccessibleWidget::indexOfChild(child);
 }
@@ -180,6 +210,17 @@ QAccessibleInterface* Widget::focusChild() const {
 	}
 	++ReentrancyDepth;
 	struct Guard { ~Guard() { --ReentrancyDepth; } } guard;
+
+	// A tab control forwards accessible focus to its current (selected) tab, so
+	// focusing the container lands the screen reader on the active tab. Only do
+	// this while the container itself holds focus - if a specific tab has
+	// keyboard focus, fall through so that focused tab is reported instead.
+	if (rp()->accessibilityRole() == QAccessible::PageTabList
+		&& widget()->hasFocus()) {
+		if (const auto selected = selectedItem(0)) {
+			return selected;
+		}
+	}
 
 	// Only handle focus child for widgets with custom accessibility children.
 	// For other widgets (containers, scroll areas), delegate to Qt immediately.
@@ -226,10 +267,111 @@ QStringList Widget::actionNames() const {
 }
 
 void Widget::doAction(const QString &actionName) {
+	// On Qt 5 the Windows UIA bridge redirects a container's SetFocus to
+	// focusChild() only for an element exposing a table interface, not for a
+	// PageTabList - so focus would land on the container. Forward SetFocus to
+	// the selected tab's widget directly instead (no extra Qt patch needed).
+	if (actionName == QAccessibleActionInterface::setFocusAction()
+		&& rp()->accessibilityRole() == QAccessible::PageTabList) {
+		if (const auto selected = selectedItem(0)) {
+			if (const auto widget = qobject_cast<QWidget*>(selected->object())) {
+				widget->setFocus(Qt::OtherFocusReason);
+				return;
+			}
+		}
+	}
 	QAccessibleWidget::doAction(actionName);
 	base::Integration::Instance().enterFromEventLoop([&] {
 		rp()->accessibilityDoAction(actionName);
 	});
+}
+
+// Selection. Only actual page-tab children participate: a selection item is a
+// child with the PageTab role, and the selected one reports selected = active,
+// so the active tab resolves independently of focus. Plain buttons among the
+// children (e.g. a locked, premium-gated folder) are deliberately excluded.
+
+int Widget::selectedItemCount() const {
+	return int(selectedItems().size());
+}
+
+QList<QAccessibleInterface*> Widget::selectedItems() const {
+	auto result = QList<QAccessibleInterface*>();
+	const auto count = childCount();
+	for (auto i = 0; i != count; ++i) {
+		const auto item = child(i);
+		if (item
+			&& item->role() == QAccessible::PageTab
+			&& item->state().selected) {
+			result.append(item);
+		}
+	}
+	return result;
+}
+
+QAccessibleInterface *Widget::selectedItem(int selectionIndex) const {
+	// Bounds-safe: an out-of-range index (including negative) yields nullptr.
+	return selectedItems().value(selectionIndex, nullptr);
+}
+
+bool Widget::isSelected(QAccessibleInterface *childItem) const {
+	return childItem
+		&& indexOfChild(childItem) >= 0
+		&& childItem->role() == QAccessible::PageTab
+		&& childItem->state().selected;
+}
+
+bool Widget::select(QAccessibleInterface *childItem) {
+	// Only report success for a page tab that belongs to this container and can
+	// actually become selected - otherwise (e.g. a locked folder whose press
+	// just opens an upsell) we must not claim the selection succeeded.
+	if (!childItem
+		|| indexOfChild(childItem) < 0
+		|| childItem->role() != QAccessible::PageTab
+		|| childItem->state().disabled
+		|| !childItem->state().selectable) {
+		return false;
+	}
+	if (const auto actions = childItem->actionInterface()) {
+		actions->doAction(QAccessibleActionInterface::pressAction());
+		return true;
+	}
+	return false;
+}
+
+bool Widget::unselect(QAccessibleInterface*) {
+	return false; // A tab control always keeps one current tab.
+}
+
+bool Widget::selectAll() {
+	return false; // Single-selection container.
+}
+
+bool Widget::clear() {
+	return false; // A tab control always keeps one current tab.
+}
+
+// Attributes. Reports the container's orientation (e.g. a vertical tab strip)
+// so UI Automation can describe a horizontal/vertical tab control.
+
+QList<QAccessible::Attribute> Widget::attributeKeys() const {
+	auto result = QList<QAccessible::Attribute>();
+	if (rp()->accessibilityOrientation().has_value()) {
+		result.append(QAccessible::Attribute::Orientation);
+	}
+	return result;
+}
+
+QVariant Widget::attributeValue(QAccessible::Attribute key) const {
+	if (key == QAccessible::Attribute::Orientation) {
+		if (const auto orientation = rp()->accessibilityOrientation()) {
+			// Plain int by design: the UIA bridge reads this back with
+			// QVariant::toInt(), and Qt::Orientation isn't a registered
+			// metatype here - QVariant::fromValue() of it wouldn't round-trip.
+			return int(*orientation);
+		}
+	}
+	return QVariant();
 }
 
 } // namespace Ui::Accessible
