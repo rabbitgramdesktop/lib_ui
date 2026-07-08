@@ -376,6 +376,7 @@ ElasticScroll::ElasticScroll(
 	) | rpl::on_next([=] {
 		if (OptionQScroller.value()) {
 			_scroller = QScroller::scroller(this);
+			SetupScrollerPhysics(_scroller, false);
 		} else if (_scroller) {
 			QObject deleter;
 			_scroller->setParent(&deleter);
@@ -730,11 +731,44 @@ bool ElasticScroll::handleWheelEvent(not_null<QWheelEvent*> e, bool touch) {
 		return true;
 	}
 	const auto phase = e->phase();
+	auto ownAxisLocked = false;
+	if (_wheelDirectionLocked || _crossAxisWheelProcess) {
+		const auto lockDelta = ScrollDeltaF(e, touch);
+		const auto locked = _wheelDirectionLocked
+			? _wheelDirectionLock.update(phase, lockDelta)
+			: std::nullopt;
+		if (!_wheelDirectionLocked || phase == Qt::NoScrollPhase) {
+			const auto own = _vertical ? lockDelta.y() : lockDelta.x();
+			const auto cross = _vertical ? lockDelta.x() : lockDelta.y();
+			if (std::abs(cross) > std::abs(own)
+				&& _crossAxisWheelProcess
+				&& _crossAxisWheelProcess(lockDelta.toPoint())) {
+				return true;
+			}
+		} else if (locked
+			&& ((*locked == Qt::Horizontal) == _vertical)) {
+			if (_crossAxisWheelProcess) {
+				_crossAxisWheelProcess(_vertical
+					? QPoint(qRound(lockDelta.x()), 0)
+					: QPoint(0, qRound(lockDelta.y())));
+			}
+			return true;
+		} else {
+			ownAxisLocked = locked.has_value();
+		}
+	}
 	const auto now = crl::now();
 	const auto guard = gsl::finally([&] {
 		_lastScroll = now;
 	});
-	const auto unmultiplied = ScrollDelta(e, touch);
+	auto unmultiplied = ScrollDelta(e, touch);
+	if (ownAxisLocked) {
+		if (_vertical) {
+			unmultiplied.setX(0);
+		} else {
+			unmultiplied.setY(0);
+		}
+	}
 	const auto multiply = e->modifiers()
 		& (Qt::ControlModifier | Qt::ShiftModifier);
 	const auto pixels = multiply
@@ -744,7 +778,8 @@ bool ElasticScroll::handleWheelEvent(not_null<QWheelEvent*> e, bool touch) {
 		: unmultiplied;
 	auto ignore = false;
 	auto delta = _vertical ? -pixels.y() : -pixels.x();
-	if (std::abs(_vertical ? pixels.x() : pixels.y()) >= std::abs(delta)) {
+	if (!ownAxisLocked
+		&& std::abs(_vertical ? pixels.x() : pixels.y()) >= std::abs(delta)) {
 		ignore = true;
 		delta = 0;
 	}
@@ -760,6 +795,19 @@ bool ElasticScroll::handleWheelEvent(not_null<QWheelEvent*> e, bool touch) {
 		switch (phase) {
 		case Qt::ScrollBegin:
 		case Qt::ScrollUpdate: {
+			if (phase == Qt::ScrollBegin
+				&& !pixels.isNull()
+				&& _scroller->state() == QScroller::Scrolling) {
+				// On macOS, when Qt loses the race detecting that a
+				// momentum phase follows the finger lift, the OS momentum
+				// stream leaks through as ScrollBegin + ScrollMomentum.
+				// A real begin (fingers resting on the pad) carries a
+				// zero delta, so a delta-carrying begin while our fling
+				// runs is that leak - pressing would catch and kill the
+				// fling. If this ever swallows a real begin, the next
+				// ScrollUpdate finds _wheelPos null and presses instead.
+				break;
+			}
 			const auto wasNull = _wheelPos.isNull();
 			if (wasNull) {
 				_wheelPos = QPoint(width(), height()) / 2;
@@ -1169,6 +1217,15 @@ void ElasticScroll::setBarTopInset(int inset) {
 	resizeEvent(&event);
 }
 
+void ElasticScroll::setBarBottomInset(int inset) {
+	if (_barBottomInset == inset) {
+		return;
+	}
+	_barBottomInset = inset;
+	auto event = QResizeEvent(size(), size());
+	resizeEvent(&event);
+}
+
 void ElasticScroll::resizeEvent(QResizeEvent *e) {
 	const auto rtl = (layoutDirection() == Qt::RightToLeft);
 	_bar->setGeometry(_vertical
@@ -1176,7 +1233,7 @@ void ElasticScroll::resizeEvent(QResizeEvent *e) {
 			(rtl ? 0 : (width() - _st.width)),
 			_barTopInset,
 			_st.width,
-			std::max(0, height() - _barTopInset))
+			std::max(0, height() - _barTopInset - _barBottomInset))
 		: QRect(0, height() - _st.width, width(), _st.width));
 	_geometryChanged.fire({});
 	updateState();
