@@ -34,6 +34,7 @@ public:
 		const style::icon *iconOverride,
 		const style::icon *iconOverrideActive = nullptr);
 	void setLocked(bool locked);
+	void setFolderStyle(int style);
 
 	int resizeGetHeight(int newWidth) override;
 
@@ -72,6 +73,8 @@ private:
 		QImage iconCache;
 		QImage iconCacheActive;
 	} _lock;
+
+	int _folderStyle = 0;
 
 };
 //

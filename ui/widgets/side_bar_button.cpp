@@ -129,6 +129,13 @@ bool SideBarButton::locked() const {
 	return _lock.locked;
 }
 
+void SideBarButton::setFolderStyle(int style) {
+	if (_folderStyle != style) {
+		_folderStyle = style;
+		update();
+	}
+}
+
 int SideBarButton::resizeGetHeight(int newWidth) {
 	auto result = _st.minHeight;
 	const auto text = std::min(
@@ -143,7 +150,53 @@ void SideBarButton::paintEvent(QPaintEvent *e) {
 	const auto clip = e->rect();
 
 	const auto &bg = _active ? _st.textBgActive : _st.textBg;
-	p.fillRect(clip, bg);
+	const auto style = _folderStyle; // 0: Default, 1: Indicator, 2: Chip, 3: Rounded, 4: Text
+	if (style == 0) {
+		p.fillRect(clip, bg);
+	} else if (style == 1) {
+		p.fillRect(clip, _st.textBg);
+		if (_active) {
+			auto hq = PainterHighQualityEnabler(p);
+			p.setPen(Qt::NoPen);
+			p.setBrush(_st.textFgActive);
+			p.drawRoundedRect(width() - 3, 12, 3, height() - 24, 1.5, 1.5);
+		}
+	} else if (style == 2 || style == 3) {
+		p.fillRect(clip, _st.textBg);
+		if (_active) {
+			const auto &icon = computeIcon();
+			const auto y = (_st.iconPosition.y() < 0)
+				? (height() - icon.height()) / 2
+				: _st.iconPosition.y();
+			
+			const auto cy = y + icon.height() / 2;
+			
+			const auto bh = 36;
+			const auto by = cy - bh / 2;
+			
+			const auto marginX = 6;
+			const auto bx = marginX;
+			const auto bw = width() - 2 * marginX;
+			
+			auto hq = PainterHighQualityEnabler(p);
+			p.setPen(Qt::NoPen);
+			
+			QColor color = _st.textBgActive->c;
+			color.setAlpha(90);
+			
+			double radius = 0;
+			if (style == 2) {
+				radius = bh * 0.25;
+			} else {
+				radius = bh * 0.5;
+			}
+			
+			p.setBrush(color);
+			p.drawRoundedRect(bx, by, bw, bh, radius, radius);
+		}
+	} else {
+		p.fillRect(clip, _st.textBg);
+	}
 
 	RippleButton::paintRipple(p, 0, 0);
 
