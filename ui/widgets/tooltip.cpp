@@ -6,6 +6,7 @@
 //
 #include "ui/widgets/tooltip.h"
 
+#include "ui/integration.h"
 #include "ui/ui_utility.h"
 #include "ui/painter.h"
 #include "ui/platform/ui_platform_utility.h"
@@ -86,7 +87,7 @@ void Tooltip::popup(const QPoint &m, const QString &text, const style::Tooltip *
 
 	_point = m;
 	_st = st;
-	_text = Text::String(_st->textStyle, text, kPlainTextOptions, _st->widthMax);
+	_text = Text::String(_st->textStyle, text, kPlainTextOptions, 1);
 	accessibilityNameChanged();
 
 	_useTransparency = Platform::TranslucentWindowsSupported();
@@ -120,9 +121,13 @@ void Tooltip::popup(const QPoint &m, const QString &text, const style::Tooltip *
 	create();
 	if (const auto native
 			= windowHandle()->nativeInterface<QWaylandWindow>()) {
+		// Tooltip::performShow ensures our window is active
+		const auto w = not_null(QApplication::activeWindow())->pos();
 		native->setParentControlGeometry(
 			QRect(
-				QPoint(m.x() + _st->shift.x(), m.y() - _st->skip),
+				QPoint(
+					m.x() - w.x() + _st->shift.x(),
+					m.y() - w.y() - _st->skip),
 				QSize(-_st->shift.x() * 2, _st->shift.y() + _st->skip)));
 		// even though Qt has tooltip type, our tooltip behaves like a menu
 		// (bottom left origin, no flip_x)
@@ -523,6 +528,7 @@ object_ptr<RpWidget> MakeTooltipWithClose(
 	const auto button = CreateChild<IconButton>(
 		result.data(),
 		closeSt);
+	button->setAccessibleName(Integration::Instance().phraseButtonClose());
 	result->sizeValue(
 	) | rpl::on_next([=](QSize size) {
 		button->resize(button->width(), size.height());
