@@ -17,6 +17,7 @@
 #include <rpl/variable.h>
 
 #include <QtGui/QTextCursor>
+#include <QShortcut>
 
 #include <any>
 
@@ -173,6 +174,7 @@ public:
 	static const int kCustomEmojiId; // QTextFormat::Property
 	static const int kCustomEmojiLink; // QTextFormat::Property
 	static const int kQuoteId; // QTextFormat::Property
+	static const int kMisspelledProperty; // QTextFormat::Property
 
 	InputField(
 		QWidget *parent,
@@ -487,6 +489,7 @@ private:
 	void updateInnerInputMethodHints();
 	void paintEventInner(QPaintEvent *e);
 	void paintQuotes(QPaintEvent *e);
+	void paintMisspelled(QPaintEvent *e);
 
 	void mousePressEventInner(QMouseEvent *e);
 	void mouseReleaseEventInner(QMouseEvent *e);
@@ -732,6 +735,7 @@ private:
 	rpl::event_stream<MarkdownTag> _markdownTagApplies;
 
 	std::vector<std::unique_ptr<QShortcut>> _markdownShortcuts;
+	QShortcut _pasteShortcut;
 
 	rpl::event_stream<bool> _focusedChanges;
 	rpl::event_stream<> _heightChanges;
