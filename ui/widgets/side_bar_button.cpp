@@ -193,9 +193,11 @@ void SideBarButton::paintEvent(QPaintEvent *e) {
 				? (height() - icon.height()) / 2
 				: _st.iconPosition.y();
 			
-			const auto cy = y + icon.height() / 2;
+			const auto cy = _showIcon
+				? (y + icon.height() / 2)
+				: (_st.textTop + _st.style.font->height / 2);
 			
-			const auto bh = 36;
+			const auto bh = _showIcon ? 36 : 28;
 			const auto by = cy - bh / 2;
 			
 			const auto marginX = 6;
