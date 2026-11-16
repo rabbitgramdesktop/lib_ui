@@ -656,6 +656,8 @@ void Renderer::initNextLine() {
 }
 
 void Renderer::initParagraphBidi() {
+	// A painter that failed to begin has no paint engine.
+	const auto engine = _p ? _p->paintEngine() : nullptr;
 	_paragraph.resolve(
 		_t,
 		_paragraphStart,
@@ -663,8 +665,8 @@ void Renderer::initParagraphBidi() {
 		(_paragraphDirection == Qt::RightToLeft),
 		int(_paragraphStartBlock - begin(_t->_blocks)),
 		-1,
-		(_p
-			? _p->paintEngine()->paintDevice()->devicePixelRatioF()
+		(engine
+			? engine->paintDevice()->devicePixelRatioF()
 			: _batch
 			? _batch->ratio
 			: 1.));
@@ -775,6 +777,9 @@ bool Renderer::drawLine(uint16 lineEnd, Blocks::const_iterator blocksEnd) {
 	}
 	if (_elisionMiddle) {
 		trimmedLineEnd = _t->blockEnd(end(_t->_blocks));
+		if (style::ElisionObserved()) {
+			style::NotifyElided(_t->toString(), _lineWidth.ceil().toInt());
+		}
 	}
 
 	const auto startBlockIt = begin(_t->_blocks) + _lineStartBlock;
@@ -2074,6 +2079,9 @@ void Renderer::prepareElisionAt(
 		int(position),
 		_lineStart,
 		_localFrom + int(lineText.size())));
+	if (style::ElisionObserved()) {
+		style::NotifyElided(_t->toString(), _lineWidth.ceil().toInt());
+	}
 	lineText = lineText.mid(0, position - _localFrom) + kQEllipsis;
 	lineLength = position + kQEllipsis.size() - _lineStart;
 	_selection.to = std::min(_selection.to, position);
