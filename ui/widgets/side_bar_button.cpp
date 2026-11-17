@@ -207,7 +207,7 @@ void SideBarButton::paintEvent(QPaintEvent *e) {
 			auto hq = PainterHighQualityEnabler(p);
 			p.setPen(Qt::NoPen);
 			
-			QColor color = _st.textBgActive->c;
+			QColor color = _st.textFgActive->c;
 			color.setAlpha(90);
 			
 			double radius = 0;
